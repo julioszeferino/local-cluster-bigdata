@@ -1,6 +1,6 @@
 
-docker compose build
-docker compose -f docker-compose.yml up -d --scale spark-worker=2
+docker compose build --progress=plain 
+docker compose -f docker-compose.yml up -d --scale spark-worker=1
 
 # Spark Master
 http://localhost:9090

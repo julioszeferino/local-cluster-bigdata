@@ -21,7 +21,7 @@ build:
 
 # Iniciar cluster
 up:
-	docker compose up -d --build --scale spark-worker=3
+	docker compose up -d --build --scale spark-worker=1
 
 # Parar cluster
 down:

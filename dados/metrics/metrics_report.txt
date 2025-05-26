@@ -1,0 +1,27 @@
+Aggregated Metrics Summary
+====================
+
+numStages	2
+numTasks	2
+elapsedTime (seconds)	3.375
+elapsedTime (minutes)	0.05625
+executorRunTime (seconds)	1.15
+executorRunTime (minutes)	0.019166666666666665
+executorCpuTime (seconds)	1.003
+executorCpuTime (minutes)	0.016716666666666668
+jvmGCTime (seconds)	0.027
+jvmGCTime (minutes)	0.00045
+peakExecutionMemory (MBs)	0.0
+shuffleTotalBytesRead (MBs)	0.0
+shuffleBytesWritten (MBs)	0.0
+recordsRead	11
+bytesRead (MBs)	0.0006389617919921875
+recordsWritten	0
+bytesWritten (MBs)	0.0
+
+Stage Metrics Report
+====================
+
+Stage ID	Stage Duration (ms)	Executor Run Time (ms)	Executor CPU Time (ms)	JVM GC Time (ms)	Shuffle Fetch Wait Time (ms)	Shuffle Write Time (ms)	Peak Execution Memory (bytes)	Records Read	Bytes Read (bytes)	Records Written	Bytes Written (bytes)	CPU Bound	Memory Bound	Network Bound	Spill	Skew	Shuffle	Serialization	Storage
+0	1930	783	685	27	0	0	0	1	335	0	0	True	False	False	False	True	False	False	False
+1	515	367	318	0	0	0	0	10	335	0	0	True	False	False	False	True	False	False	False

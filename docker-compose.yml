@@ -6,7 +6,7 @@ services:
     container_name: dsa-spark-master
     build: .
     image: dsa-spark-image
-    entrypoint: ['./entrypoint.sh', 'master', '&&', 'cp', '/opt/spark/jars_personalizados/*.jar', '/opt/spark/jars/']
+    entrypoint: ['bash', './entrypoint.sh', 'master']
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9090" ]
       interval: 5s
@@ -82,7 +82,7 @@ services:
       - "8888:8888"
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     ports:
       - "9000:9000"
       - "9001:9001"

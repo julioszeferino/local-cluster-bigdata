@@ -6,18 +6,19 @@ FROM python:3.11-bullseye as spark-base
 # Atualiza o SO e instala pacotes
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      sudo \
-      curl \
-      vim \
-      nano \
-      unzip \
-      rsync \
-      openjdk-11-jdk \
-      build-essential \
-      software-properties-common \
-      ssh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    sudo \
+    curl \
+    vim \
+    nano \
+    unzip \
+    rsync \
+    openjdk-11-jdk \
+    build-essential \
+    software-properties-common \
+    ssh \
+    dos2unix && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
 
 # Variáveis de ambiente
 ENV SPARK_HOME=${SPARK_HOME:-"/opt/spark"}
@@ -36,7 +37,7 @@ RUN curl https://archive.apache.org/dist/spark/spark-3.5.0/spark-3.5.0-bin-hadoo
 FROM spark-base as pyspark
 
 # Instala as dependências Python
-COPY requirements/requirements.txt .
+ADD requirements/requirements.txt .
 RUN pip3 install -r requirements.txt
 
 # Mais variáveis de ambiente
@@ -48,11 +49,14 @@ ENV SPARK_MASTER_PORT 7077
 ENV PYSPARK_PYTHON python3
 
 # Copia o arquivo de configuração do Spark para a imagem
-COPY conf/spark-defaults.conf "$SPARK_HOME/conf"
-COPY conf/spark-env.sh "$SPARK_HOME/conf"
+ADD conf/spark-defaults.conf "$SPARK_HOME/conf"
+ADD conf/spark-env.sh "$SPARK_HOME/conf"
+
+RUN dos2unix $SPARK_HOME/conf/spark-env.sh
+RUN dos2unix $SPARK_HOME/conf/spark-defaults.conf
 
 # jars
-COPY jars/* "$SPARK_HOME/jars/"
+ADD jars/* "$SPARK_HOME/jars/"
 
 RUN mkdir -p /var/log/spark
 
@@ -66,10 +70,14 @@ RUN chmod u+x /opt/spark/sbin/* && \
 ENV PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
 
 # Copia o script de inicialização dos serviços para a imagem
-COPY entrypoint.sh .
+ADD entrypoint.sh .
 
 # Ajusta o privilégio
-RUN chmod +x entrypoint.sh
+RUN dos2unix entrypoint.sh && chmod +x entrypoint.sh
+
+RUN ls -la /opt/spark/conf && ls -la /opt/spark/jars && ls -la requirements.txt && ls -la entrypoint.sh
+
+RUN cat entrypoint.sh
 
 # Executa o script quando inicializar um container
 ENTRYPOINT ["./entrypoint.sh"]
