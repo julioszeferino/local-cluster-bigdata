@@ -1,0 +1,46 @@
+"""
+.config("spark.hadoop.fs.s3a.endpoint", "http://138.197.224.4") \
+"""
+
+import logging
+from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame
+
+logger = logging.getLogger(__name__)
+
+
+def create_spark_session(app_name):
+    """
+    Create a Spark session with the given application name.
+
+    Parameters:
+        app_name (str): The name of the Spark application.
+
+    Returns:
+        spark (pyspark.sql.SparkSession): The created Spark session.
+    """
+
+    spark = SparkSession \
+        .builder \
+        .appName(app_name) \
+        .getOrCreate()
+
+    spark.sparkContext.setLogLevel("WARN")
+
+    return spark
+
+
+def get_num_partitions(df: DataFrame) -> int:
+    """
+    This method `get_num_partitions` returns the number of partitions for the given DataFrame `df`.
+
+    Parameters:
+    - `df`: The input DataFrame.
+
+    Returns:
+    - An integer representing the number of partitions in the DataFrame.
+    """
+
+    num_partitions = df.rdd.getNumPartitions()
+
+    return num_partitions

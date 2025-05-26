@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+export SPARK_WORKER_CORES=${SPARK_WORKER_CORES:-2}
+export SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY:-3G}

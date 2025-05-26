@@ -1,0 +1,17 @@
+apiVersion: skaffold/v2beta22
+kind: Config
+metadata:
+  name: yelp-etl
+build:
+  artifacts:
+    - image: owshq/etl-yelp-batch
+      context: .
+      docker:
+        dockerfile: Dockerfile
+  tagPolicy:
+    envTemplate:
+      template: "{{.IMAGE_NAME}}:latest"
+deploy:
+  kubectl:
+    manifests:
+      - deploy/etl-yelp-batch.yaml

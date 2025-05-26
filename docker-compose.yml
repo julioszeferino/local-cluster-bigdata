@@ -1,0 +1,212 @@
+version: '3.8'
+name: dsa-cluster
+
+services:
+  spark-master:
+    container_name: dsa-spark-master
+    build: .
+    image: dsa-spark-image
+    entrypoint: ['./entrypoint.sh', 'master', '&&', 'cp', '/opt/spark/jars_personalizados/*.jar', '/opt/spark/jars/']
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - ./dados:/opt/spark/data
+      - ./jobs:/opt/spark/apps
+      - storage-spark-logs:/opt/spark/spark-events
+      - storage-spark-logs:/opt/spark/logs/spark-events
+      - storage-spark-logs:/var/log/spark
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=3G
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env.spark
+    ports:
+      - '9090:9090'
+      - '7077:7077'
+
+  spark-history-server:
+    container_name: dsa-spark-history
+    image: dsa-spark-image
+    entrypoint: ['./entrypoint.sh', 'history']
+    depends_on:
+      - spark-master
+    env_file:
+      - .env.spark
+    volumes:
+      - storage-spark-logs:/opt/spark/spark-events
+      - storage-spark-logs:/opt/spark/logs/spark-events
+      - storage-spark-logs:/var/log/spark
+    ports:
+      - '18080:18080'
+
+  spark-worker:
+    image: dsa-spark-image
+    entrypoint: ['./entrypoint.sh', 'worker']
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=3G
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env.spark
+    volumes:
+      - ./dados:/opt/spark/data
+      - ./jobs:/opt/spark/apps
+      - storage-spark-logs:/opt/spark/spark-events
+      - storage-spark-logs:/opt/spark/logs/spark-events
+      - storage-spark-logs:/var/log/spark
+
+  jupyter:
+    container_name: dsa-jupyter
+    build: 
+      context: .
+      dockerfile: conf/jupyter/jupyter.dockerfile
+    image: jupyter/dsa-jupyter-image:latest
+    command: ["start-notebook.sh", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+    volumes:
+      - ./dados:/home/jovyan/data
+      - ./notebooks:/home/jovyan/notebooks
+      - ./jars:/home/jovyan/notebooks/jars
+      - ./requirements:/home/jovyan/requirements
+    working_dir: /home/jovyan/notebooks
+    ports:
+      - "8888:8888"
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+
+  metastore-db:
+    container_name: metastore-db
+    hostname: metastore-db
+    image: postgres:13.0
+    ports:
+      - 5434:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=metastore_db
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "poc" ]
+      interval: 5s
+      retries: 5
+
+
+  hive-metastore:
+    container_name: hive-metastore
+    hostname: hive-metastore
+    image: apache/hive:4.0.0
+    ports:
+      - 9083:9083 # Metastore Thrift
+    volumes:
+      - ./conf/hive-core-site.xml:/opt/hadoop-3.3.6/etc/hadoop/core-site.xml:ro
+      - ./conf/hive-metastore-site.xml:/opt/hive/conf/metastore-site.xml:ro
+      - ./jars/postgresql-42.5.1.jar:/opt/hive/lib/postgres.jar
+      - ./jars/hadoop-aws-3.3.4.jar:/opt/hive/lib/hadoop-aws.jar
+      - ./jars/delta-storage-3.2.0:/opt/hive/lib/delta-storage.jar
+      - ./jars/delta-spark_2.12-3.2.0:/opt/hive/lib/delta-storage.jar
+      - ./jars/aws-java-sdk-bundle-1.11.1026.jar:/opt/hive/lib/aws-java-sdk-bundle.jar
+      - ./dados/hive/warehouse:/opt/hive/data/warehouse
+    environment:
+      - SERVICE_NAME=metastore
+      - DB_DRIVER=postgres
+      - METASTORE_DB_HOSTNAME=metastore-db
+      - VERBOSE=true
+    depends_on:
+      - metastore-db
+      - minio
+
+  trino-coordinator:
+    image: trinodb/trino:458
+    container_name: trino-coordinator
+    hostname: trino-coordinator
+    environment:
+      - TRINO_NODE_ID=coordinator
+      - TRINO_NODE_ENVIRONMENT=production
+    ports:
+      - 8080:8080
+    volumes:
+      - trino_data:/etc/trino
+      - ./conf/trino/catalog:/etc/trino/catalog
+      - ./conf/trino/coordinator-config.properties:/etc/trino/config.properties
+      - ./conf/trino/node.properties:/etc/trino/node.properties
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trino-worker1:
+    image: trinodb/trino:458
+    hostname: trino-worker
+    depends_on:
+      trino-coordinator:
+        condition: service_healthy
+    environment:
+      - TRINO_NODE_ID=worker1
+      - TRINO_NODE_ENVIRONMENT=production
+    volumes:
+      - trino_data:/etc/trino
+      - ./conf/trino/worker-config.properties:/etc/trino/config.properties
+      - ./conf/trino/node.properties:/etc/trino/node.properties
+
+  
+  trino-worker2:
+    image: trinodb/trino:458
+    hostname: trino-worker
+    depends_on:
+      trino-coordinator:
+        condition: service_healthy
+    environment:
+      - TRINO_NODE_ID=worker2
+      - TRINO_NODE_ENVIRONMENT=production
+    volumes:
+      - trino_data:/etc/trino
+      - ./conf/trino/worker-config.properties:/etc/trino/config.properties
+      - ./conf/trino/node.properties:/etc/trino/node.properties
+
+
+  dbeaver:
+    container_name: dbeaver
+    hostname: dbeaver
+    image: dbeaver/cloudbeaver:24.2.0
+    ports:
+      - 8978:8978
+    environment:
+      - CB_ADMIN_NAME=admin
+      - CB_ADMIN_PASSWORD=admin
+    volumes:
+      - dbeaver_data:/opt/dbeaver/conf
+    restart: always
+
+volumes:
+  storage-spark-logs:
+  minio_data:
+  postgres_data:
+  trino_data:
+  dbeaver_data:

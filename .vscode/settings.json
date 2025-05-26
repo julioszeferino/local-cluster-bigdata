@@ -1,0 +1,17 @@
+{
+    "sqltools.connections": [
+        {
+            "trinoOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "previewLimit": 50,
+            "driver": "Trino Driver",
+            "name": "trino-loocal",
+            "server": "http://localhost:8085",
+            "catalog": "minio",
+            "user": "trino"
+        }
+    ]
+}

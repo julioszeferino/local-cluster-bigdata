@@ -1,0 +1,26 @@
+
+docker compose build
+docker compose -f docker-compose.yml up -d --scale spark-worker=2
+
+# Spark Master
+http://localhost:9090
+
+# History Server
+http://localhost:18080
+
+# Jupyter
+http://localhost:8888
+
+
+# MinIO
+http://localhost:9000
+
+# Dbeaver
+http://localhost:8978
+
+
+# Trino
+http://localhost:8080
+
+ACCESS KEY MinIO
+data-lake

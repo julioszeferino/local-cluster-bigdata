@@ -1,0 +1,6 @@
+{
+    "loc_path_business": "s3a://owshq/yelp/business/*.parquet",
+    "loc_path_reviews": "s3a://owshq/yelp/reviews/*.parquet",
+    "loc_path_users": "s3a://owshq/yelp/users/*.parquet",
+    "output_path": "s3a://production/"
+}

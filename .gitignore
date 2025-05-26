@@ -1,0 +1,9 @@
+jars/
+delta_old/
+logs/
+notebooks/jars/
+
+# Ignrooe Python files
+*.pyc
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
